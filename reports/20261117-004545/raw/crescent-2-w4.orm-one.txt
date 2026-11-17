@@ -1,0 +1,13 @@
+Running 15s test @ http://127.0.0.1:8102/orm/1
+  2 threads and 64 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     2.69ms    7.59ms 208.78ms   94.92%
+    Req/Sec    27.94k     2.67k   33.86k    77.15%
+  Latency Distribution
+     50%    1.01ms
+     75%    1.74ms
+     90%    4.05ms
+     99%   38.24ms
+  839325 requests in 15.10s, 218.26MB read
+Requests/sec:  55582.28
+Transfer/sec:     14.45MB

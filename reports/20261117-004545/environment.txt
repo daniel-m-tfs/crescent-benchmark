@@ -1,0 +1,9 @@
+date=2026-11-17T03:45:45Z
+machine=Apple M2 cpus=8 mem_gb=8
+os=26.4.1
+wrk=-t2 -c64 -d15s warmup=5s
+mysql=9.5.0
+openresty=1.31.1.1
+luvit=luvit version: 2.18.1
+node=v24.11.1 fastify=5.12.8 mysql2=3.24.6
+python=3.13.14 fastapi=0.163.1 uvicorn=0.54.0 aiomysql=0.3.2

@@ -1,0 +1,13 @@
+Running 15s test @ http://127.0.0.1:8104/params/42?q=lua
+  2 threads and 64 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     4.58ms    2.61ms 117.08ms   96.97%
+    Req/Sec     7.28k   603.73     8.41k    93.33%
+  Latency Distribution
+     50%    4.31ms
+     75%    4.38ms
+     90%    4.47ms
+     99%   11.35ms
+  217347 requests in 15.02s, 30.26MB read
+Requests/sec:  14468.69
+Transfer/sec:      2.01MB

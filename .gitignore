@@ -15,3 +15,4 @@ apps/crescent-2/lua_modules
 # Reports: only the published run is committed (see README)
 reports/*
 !reports/legacy-1x/
+!reports/20261117-004545/
