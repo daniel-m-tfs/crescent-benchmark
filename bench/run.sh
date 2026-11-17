@@ -5,10 +5,12 @@
 #   bench/run.sh                         # all apps, 1 and 4 workers, 15s per scenario
 #   bench/run.sh --quick                 # 5s per scenario, 2s warm-up
 #   bench/run.sh --workers 1 crescent-2 node-fastify
+#   bench/run.sh --rounds 3              # repeat everything; the report uses the median
 #
 # Options (or environment): --workers "1 4" (WORKERS_LIST), --duration 15s
 # (DURATION), --warmup 5s (WARMUP), --connections 64 (CONNECTIONS),
-# --threads 2 (THREADS).
+# --threads 2 (THREADS), --rounds 1 (ROUNDS). Each round rotates the app
+# order so no app is always measured first or last.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,6 +21,7 @@ DURATION="${DURATION:-15s}"
 WARMUP="${WARMUP:-5s}"
 CONNECTIONS="${CONNECTIONS:-64}"
 THREADS="${THREADS:-2}"
+ROUNDS="${ROUNDS:-1}"
 APPS=()
 
 while [ $# -gt 0 ]; do
@@ -29,6 +32,7 @@ while [ $# -gt 0 ]; do
         --warmup) WARMUP="$2"; shift ;;
         --connections) CONNECTIONS="$2"; shift ;;
         --threads) THREADS="$2"; shift ;;
+        --rounds) ROUNDS="$2"; shift ;;
         -h|--help) sed -n 2,12p "$0"; exit 0 ;;
         -*) echo "unknown option: $1" >&2; exit 2 ;;
         *) APPS+=("$1") ;;
@@ -53,7 +57,7 @@ OUT="$ROOT/reports/$STAMP"
 RAW="$OUT/raw"
 mkdir -p "$RAW"
 CSV="$OUT/results.csv"
-echo "app,workers,scenario,requests_per_sec,latency_avg_ms,p50_ms,p90_ms,p99_ms,requests,errors,non_2xx,rss_mb" > "$CSV"
+echo "round,app,workers,scenario,requests_per_sec,latency_avg_ms,p50_ms,p90_ms,p99_ms,requests,errors,non_2xx,rss_mb" > "$CSV"
 
 # name|method path|wrk script (empty = none)|expected status
 SCENARIOS=(
@@ -163,7 +167,7 @@ run_wrk() { # duration, url, script, output
     echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "machine=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || uname -m) cpus=$(sysctl -n hw.ncpu 2>/dev/null || nproc) mem_gb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))"
     echo "os=$(sw_vers -productVersion 2>/dev/null || uname -r)"
-    echo "wrk=-t$THREADS -c$CONNECTIONS -d$DURATION warmup=$WARMUP"
+    echo "wrk=-t$THREADS -c$CONNECTIONS -d$DURATION warmup=$WARMUP rounds=$ROUNDS"
     echo "mysql=$(mysql_cli -N -e 'SELECT VERSION()')"
     echo "openresty=$("$OPENRESTY" -v 2>&1 | sed 's/.*openresty\///')"
     echo "luvit=$(luvit -v 2>/dev/null | head -1)"
@@ -171,21 +175,25 @@ run_wrk() { # duration, url, script, output
     echo "python=$("$ROOT/apps/python-fastapi/.venv/bin/python" -V | cut -d' ' -f2) $("$ROOT/apps/python-fastapi/.venv/bin/python" -I -c 'import fastapi,uvicorn,aiomysql;print(f"fastapi={fastapi.__version__} uvicorn={uvicorn.__version__} aiomysql={aiomysql.__version__}")')"
 } > "$OUT/environment.txt"
 
-for workers in $WORKERS_LIST; do
-    for app in "${APPS[@]}"; do
+for round in $(seq 1 "$ROUNDS"); do
+  # Rotate the app order every round.
+  shift_by=$(( (round - 1) % ${#APPS[@]} ))
+  ORDER=("${APPS[@]:$shift_by}" "${APPS[@]:0:$shift_by}")
+  for workers in $WORKERS_LIST; do
+    for app in "${ORDER[@]}"; do
         if [ "$app" = crescent-1x ] && [ "$workers" -gt 1 ]; then
             echo "== $app x$workers: skipped (Luvit runs a single process)"
             continue
         fi
         port="$(port_of "$app")"
         base="http://127.0.0.1:$port"
-        tag="$app-w$workers"
-        echo "== $app x$workers ($base)"
+        tag="r$round-$app-w$workers"
+        echo "== round $round/$ROUNDS: $app x$workers ($base)"
         mysql_cli < "$BENCH/schema.sql"
         start_app "$app" "$workers" "$port" "$RAW/$tag.server.log" || { stop_app; continue; }
         if ! verify_app "$base" "$RAW/$tag.contract.txt"; then stop_app; continue; fi
         idle="$(rss_mb)"
-        echo "$app,$workers,idle,,,,,,,,,$idle" >> "$CSV"
+        echo "$round,$app,$workers,idle,,,,,,,,,$idle" >> "$CSV"
         for spec in "${SCENARIOS[@]}"; do
             IFS='|' read -r name path script _expect <<< "$spec"
             if [ "$name" = orm-one ] && [[ "$app" != crescent-* ]]; then continue; fi
@@ -193,11 +201,12 @@ for workers in $WORKERS_LIST; do
             run_wrk "$WARMUP" "$base$path" "$script" /dev/null
             run_wrk "$DURATION" "$base$path" "$script" "$RAW/$tag.$name.txt"
             rss="$(rss_mb)"
-            python3 -I "$BENCH/parse_wrk.py" "$RAW/$tag.$name.txt" "$app" "$workers" "$name" "$rss" >> "$CSV"
-            tail -1 "$CSV" | awk -F, '{printf "%10s req/s  p99 %s ms  errors %s  non-2xx %s\n", $4, $8, $10, $11}'
+            python3 -I "$BENCH/parse_wrk.py" "$RAW/$tag.$name.txt" "$round" "$app" "$workers" "$name" "$rss" >> "$CSV"
+            tail -1 "$CSV" | awk -F, '{printf "%10s req/s  p99 %s ms  errors %s  non-2xx %s\n", $5, $9, $11, $12}'
         done
         stop_app
     done
+  done
 done
 
 python3 -I "$BENCH/report.py" "$OUT"

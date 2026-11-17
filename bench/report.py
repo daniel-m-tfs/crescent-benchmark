@@ -1,7 +1,9 @@
 """Builds reports/<stamp>/report.md from results.csv and environment.txt."""
-import csv
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from aggregate import load  # noqa: E402
 
 LABELS = {
     "crescent-1x": "Crescent 1.x (Luvit)",
@@ -28,15 +30,28 @@ def fmt_int(x):
 
 def main(out_dir):
     out = Path(out_dir)
-    rows = list(csv.DictReader(open(out / "results.csv")))
+    rows = []
+    for a in load(out / "results.csv"):
+        rows.append({
+            "app": a["app"], "workers": str(a["workers"]), "scenario": a["scenario"],
+            "requests_per_sec": "" if a["rps"] is None else str(a["rps"]),
+            "rps_min": a["rps_min"], "rps_max": a["rps_max"], "rounds": a["rounds"],
+            "p99_ms": "" if a["p99"] is None else str(a["p99"]),
+            "requests": str(a["requests"] or 0), "errors": str(a["errors"] or 0),
+            "non_2xx": str(a["non2xx"] or 0),
+            "rss_mb": str(a["rss_idle"] if a["scenario"] == "idle" else (a["rss"] or "")),
+        })
     env = (out / "environment.txt").read_text().strip()
     by = {(r["app"], r["workers"], r["scenario"]): r for r in rows}
     workers_list = sorted({r["workers"] for r in rows}, key=int)
 
     md = ["# Benchmark: Crescent 1.x × Crescent 2 × Node × Python", ""]
     md += ["```", env, "```", ""]
+    rounds = max((r["rounds"] for r in rows), default=1)
+    md += [f"Mediana de {rounds} rodada(s). " if rounds > 1 else ""]
     md += ["Valores: requisições por segundo (maior é melhor) e, entre parênteses, "
-           "latência p99 em ms (menor é melhor). `⚠` = houve erros de socket ou "
+           "latência p99 em ms (menor é melhor). Com mais de uma rodada, a faixa "
+           "mín–máx de req/s aparece entre colchetes. `⚠` = houve erros de socket ou "
            "respostas fora de 2xx. Detalhes brutos em `raw/`.", ""]
 
     for w in workers_list:
@@ -62,6 +77,8 @@ def main(out_dir):
                 rps = float(r["requests_per_sec"])
                 bad = int(r["errors"] or 0) + int(r["non_2xx"] or 0)
                 cell = f"{fmt_int(rps)} ({r['p99_ms']})"
+                if r["rounds"] > 1 and r["rps_min"] is not None:
+                    cell += f" [{fmt_int(r['rps_min'])}–{fmt_int(r['rps_max'])}]"
                 if rps == best:
                     cell = f"**{cell}**"
                 if bad:

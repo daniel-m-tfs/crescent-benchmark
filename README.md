@@ -27,6 +27,7 @@ luarocks install luasql-mysql         # driver do Crescent 1.x
 bench/run.sh                 # completo: 1 e 4 workers, 15s por cenário (~20 min)
 bench/run.sh --quick         # 5s por cenário
 bench/run.sh --workers 1 crescent-2 node-fastify   # só alguns apps
+bench/run.sh --rounds 3      # repete tudo 3x (ordem alternada); relatório usa a mediana
 ```
 
 O resultado fica em `reports/<data>/` (só a rodada publicada no site vai para o
@@ -54,6 +55,9 @@ respostas precisam bater); se falhar, ele é pulado e o motivo fica no log.
 
 - **Um app por vez.** Os outros ficam parados; o banco é recriado (1000 linhas
   iguais) antes de cada app.
+- **Repetições:** a rodada publicada usa `--rounds 3`; a ordem dos apps gira a cada
+  rodada e o relatório mostra a mediana e a faixa mín–máx. Uma rodada só não basta:
+  de uma execução para outra o mesmo app variou até ~25% nesta máquina.
 - **Mesma carga:** `wrk -t2 -c64`, aquecimento de 5s descartado, 15s medidos
   por cenário.
 - **Só o núcleo do framework:** nenhum log de acesso, CORS, rate limit ou

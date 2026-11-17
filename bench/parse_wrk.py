@@ -10,7 +10,7 @@ def ms(text):
     return round(float(m.group(1)) * UNITS[m.group(2)], 3) if m else ""
 
 
-def main(path, app, workers, scenario, rss):
+def main(path, round_, app, workers, scenario, rss):
     out = open(path, encoding="utf-8", errors="replace").read()
     rps = re.search(r"Requests/sec:\s+([\d.]+)", out)
     avg = re.search(r"Latency\s+(\S+)", out)
@@ -20,7 +20,7 @@ def main(path, app, workers, scenario, rss):
     non2xx = re.search(r"Non-2xx or 3xx responses: (\d+)", out)
     errors = sum(int(x) for x in sock.groups()) if sock else 0
     row = [
-        app, workers, scenario,
+        round_, app, workers, scenario,
         rps.group(1) if rps else "0",
         ms(avg.group(1)) if avg else "",
         ms(pct.get("50", "")), ms(pct.get("90", "")), ms(pct.get("99", "")),
@@ -33,4 +33,4 @@ def main(path, app, workers, scenario, rss):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:6])
+    main(*sys.argv[1:7])
