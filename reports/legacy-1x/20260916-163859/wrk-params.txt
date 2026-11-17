@@ -1,0 +1,13 @@
+Running 10s test @ http://127.0.0.1:8080/benchmark/params/a%20b?mode=load
+  2 threads and 20 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.52ms    6.56ms 106.01ms   95.53%
+    Req/Sec     1.76k   490.73     2.22k    76.50%
+  Latency Distribution
+     50%    4.87ms
+     75%    5.60ms
+     90%    8.92ms
+     99%   41.16ms
+  35071 requests in 10.01s, 5.18MB read
+Requests/sec:   3502.78
+Transfer/sec:    530.21KB

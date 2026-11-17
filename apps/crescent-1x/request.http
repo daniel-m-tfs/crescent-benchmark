@@ -1,0 +1,23 @@
+GET http://localhost:8080/users HTTP/1.1
+
+###
+GET http://localhost:8080/users/1 HTTP/1.1
+
+###
+POST http://localhost:8080/users HTTP/1.1
+content-type: application/json
+
+{
+    "name": "NomeUser"
+}
+
+###
+PUT http://localhost:8080/users/1 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "NomeUser"
+}
+
+###
+DELETE http://localhost:8080/users/1 HTTP/1.1

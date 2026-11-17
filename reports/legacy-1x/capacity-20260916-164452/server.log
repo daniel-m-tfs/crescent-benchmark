@@ -1,0 +1,5 @@
+✓ Driver MySQL: luasql
+✓ Módulo Users carregado
+✓ Módulo Auth carregado
+✓ Módulo Benchmark carregado
+🌙 Crescent server listening on http://0.0.0.0:8080

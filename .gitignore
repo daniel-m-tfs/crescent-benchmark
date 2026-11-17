@@ -1,0 +1,17 @@
+# Secrets
+.env
+bench/.env
+
+# Dependencies / runtime
+node_modules/
+.venv/
+__pycache__/
+apps/crescent-2/logs/
+apps/crescent-2/tmp/
+apps/crescent-2/conf/nginx.bench.run.conf
+apps/crescent-2/lua_modules
+.DS_Store
+
+# Reports: only the published run is committed (see README)
+reports/*
+!reports/legacy-1x/

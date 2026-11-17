@@ -1,0 +1,20 @@
+
+<%- header %>
+    <div class="container">
+        <h1><span class="emoji">🌙</span> Crescent Framework</h1>
+        <p class="subtitle">Bem-vindo ao <%= project_name %></p>
+        
+        <div class="info">
+            <p><span class="label">Ambiente:</span> <%= environment %></p>
+            <p><span class="label">Versão:</span> <%= version %></p>
+            <p><span class="label">Data:</span> <%= current_date %></p>
+        </div>
+        
+        <div class="links">
+            <a href="/users" class="link">📋 Ver Usuários</a>
+            <a href="https://crescent.tyne.com.br" class="link" target="_blank">📖 Documentação</a>
+        </div>
+    </div>
+
+<%- footer %>
+
